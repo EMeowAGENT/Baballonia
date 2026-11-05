@@ -18,13 +18,15 @@ depends=(
     libjpeg-turbo
     fontconfig
     libglvnd
-    lttng-ust
     hicolor-icon-theme
     xdg-utils
     onnxruntime-cuda
     espflash
     babbletrainer
     babblecalibration-bin
+)
+optdepends=(
+    'lttng-ust: CoreCLR tracing'
 )
 makedepends=(
     dotnet-sdk
