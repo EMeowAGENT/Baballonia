@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Baballonia.PaperTrackerCapture</AssemblyName>
+    <RootNamespace>Baballonia.PaperTrackerCapture</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Baballonia.SDK\Baballonia.SDK.csproj" />
+    <ProjectReference Include="..\PaperTracker.Protocol\PaperTracker.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>

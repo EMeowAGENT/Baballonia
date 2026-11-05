@@ -63,6 +63,14 @@ public class SingleCameraSourceFactory
     {
         var factories = _platformConnector.GetCaptureFactories();
 
+        if (address.StartsWith("paperudp://", StringComparison.OrdinalIgnoreCase))
+        {
+            var paper = factories.FirstOrDefault(factory =>
+                factory.CanConnect(address) && factory.GetProviderName() == "PaperTracker UDP");
+            if (paper != null)
+                return paper;
+        }
+
         // On Linux /dev/video* is shared by the V4L2, OpenCV and (for actual
         // Vive facial trackers) VFT backends. Prefer the native V4L2 backend;
         // it handles UVC/MJPEG far more reliably than OpenCV and avoids the

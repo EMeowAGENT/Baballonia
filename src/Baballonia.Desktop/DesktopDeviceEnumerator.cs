@@ -56,6 +56,12 @@ public sealed class DesktopDeviceEnumerator(ILogger<DesktopDeviceEnumerator> log
             // Add serial ports as potential camera sources
             Logger.LogDebug("Adding serial ports as potential camera sources");
             AddSerialPorts(cameraDict);
+
+            if (OperatingSystem.IsLinux())
+            {
+                Logger.LogDebug("Adding PaperTracker UDP streams");
+                AddPaperTrackerDevices(cameraDict);
+            }
         }
         catch (Exception ex)
         {
@@ -264,6 +270,19 @@ public sealed class DesktopDeviceEnumerator(ILogger<DesktopDeviceEnumerator> log
         {
             cameraDict.Add($"Error listing serial devices: {ex.Message}", "error");
         }
+    }
+
+    private void AddPaperTrackerDevices(Dictionary<string, string> cameraDict)
+    {
+        // PaperTracker's Android bridge sends face/left/right streams to one
+        // UDP port (45454 by default). These entries let the user pick a slot
+        // directly instead of typing a paperudp:// URL.
+        EnsureUniqueKey(cameraDict, "PaperTracker Face (UDP)",
+            "paperudp://0.0.0.0:45454/face");
+        EnsureUniqueKey(cameraDict, "PaperTracker Left Eye (UDP)",
+            "paperudp://0.0.0.0:45454/left");
+        EnsureUniqueKey(cameraDict, "PaperTracker Right Eye (UDP)",
+            "paperudp://0.0.0.0:45454/right");
     }
 
     private void EnsureUniqueKey(Dictionary<string, string> dict, string key, string value)

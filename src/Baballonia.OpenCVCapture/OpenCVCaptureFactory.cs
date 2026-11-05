@@ -13,6 +13,10 @@ public class OpenCvCaptureFactory(ILoggerFactory loggerFactory) : ICaptureFactor
     public bool CanConnect(string address)
     {
         var lowered = address.ToLower();
+
+        // paperudp:// is a dedicated UDP capture module, not an OpenCV URI.
+        if (lowered.StartsWith("paperudp://")) return false;
+
         var serial = lowered.StartsWith("com") ||
                      lowered.StartsWith("/dev/tty") ||
                      lowered.StartsWith("/dev/cu") ||
