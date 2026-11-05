@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Baballonia.Services.Inference;
@@ -110,12 +111,19 @@ public class SingleCameraSourceFactory
             }
 
             Stopwatch sw = Stopwatch.StartNew();
-            var timeout = TimeSpan.FromSeconds(13);
+            // PaperTracker only starts streaming after the headset's next
+            // probe (~2.5 s) and the ACK; give it a little more room than a
+            // local camera while avoiding a permanently stuck start.
+            var timeout = providerName == "PaperTracker UDP"
+                ? TimeSpan.FromSeconds(30)
+                : TimeSpan.FromSeconds(13);
             while (sw.Elapsed < timeout)
             {
                 var testFrame = cameraSource.GetFrame();
                 if (testFrame != null)
                     return cameraSource;
+
+                Thread.Sleep(5);
             }
 
             _logger.LogError("No data was received from {}, with {}, closing... Maybe the camera is opened somewhere else?", address, providerName);
