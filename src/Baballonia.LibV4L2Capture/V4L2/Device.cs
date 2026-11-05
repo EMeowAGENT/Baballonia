@@ -39,10 +39,10 @@ public class Device : IDisposable {
     public v4l2_pix_fmt PixelFormat { get; private set; }
     public Data.v4l2_format CurrentFormat { get; private set; }
 
-    private int _fileDescriptor;
+    private int _fileDescriptor = -1;
 
-    private IntPtr[] _bufferStarts;
-    private uint[] _bufferLengths;
+    private IntPtr[] _bufferStarts = [];
+    private uint[] _bufferLengths = [];
     private uint _bufferCount;
 
     public static Device? Connect(string address)
@@ -74,41 +74,82 @@ public class Device : IDisposable {
         var format = formats[0];
         device.PixelFormat = format.pixelformat;
 
-        Data.v4l2_frmivalenum bestInterval = default;
-        double maxFps = 0;
-        uint maxResolution = 0;
-
-        var sizes = device.EnumerateFrameSizes(device.PixelFormat);
-        foreach (var size in sizes)
+        var candidates = new List<(uint Width, uint Height, double MaxFps)>();
+        foreach (var size in device.EnumerateFrameSizes(device.PixelFormat))
         {
-            var intervals = device.EnumerateFrameIntervals(device.PixelFormat, size.discrete.width, size.discrete.height);
-            foreach (var interval in intervals)
-            {
-                double fps;
-                switch (interval.type)
-                {
-                    case v4l2_frmivaltypes.V4L2_FRMIVAL_TYPE_DISCRETE:
-                        fps = (double)interval.discrete.denominator / interval.discrete.numerator;
-                        break;
-                    case v4l2_frmivaltypes.V4L2_FRMIVAL_TYPE_CONTINUOUS:
-                    case v4l2_frmivaltypes.V4L2_FRMIVAL_TYPE_STEPWISE:
-                        fps = (double)interval.stepwise.min.denominator / interval.stepwise.min.numerator;
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-                var resolution = size.discrete.width * size.discrete.height;
+            // Stepwise/continuous sizes use the same union but a different
+            // layout; reading the discrete fields returns min/max values as
+            // if they were width/height. Only discrete entries are usable here.
+            if (size.type != (uint)v4l2_frmsizetypes.V4L2_FRMSIZE_TYPE_DISCRETE)
+                continue;
+            if (size.discrete.width == 0 || size.discrete.height == 0)
+                continue;
 
-                if (fps > maxFps || (Math.Abs(fps - maxFps) < 0.001 && resolution > maxResolution))
+            var intervals = device.EnumerateFrameIntervals(
+                device.PixelFormat, size.discrete.width, size.discrete.height);
+
+            var maxFps = intervals
+                .Select(interval => interval.type switch
                 {
-                    maxFps = fps;
-                    maxResolution = resolution;
-                    bestInterval = interval;
-                }
-            }
+                    v4l2_frmivaltypes.V4L2_FRMIVAL_TYPE_DISCRETE =>
+                        (double)interval.discrete.denominator / interval.discrete.numerator,
+                    v4l2_frmivaltypes.V4L2_FRMIVAL_TYPE_CONTINUOUS or
+                        v4l2_frmivaltypes.V4L2_FRMIVAL_TYPE_STEPWISE =>
+                        (double)interval.stepwise.min.denominator / interval.stepwise.min.numerator,
+                    _ => 0d
+                })
+                .Where(fps => fps > 0 && !double.IsInfinity(fps))
+                .DefaultIfEmpty(0d)
+                .Max();
+
+            candidates.Add((size.discrete.width, size.discrete.height, maxFps));
         }
 
-        device.SetFormat(bestInterval);
+        // The face/eye models consume 128-224 px crops. Decoding a 1080p or
+        // 4K MJPEG stream just wastes CPU, so prefer the largest mode up to
+        // 640x640 and fall back to the smallest mode if the camera only
+        // exposes larger resolutions.
+        var chosen = candidates
+            .Where(c => c.Width <= 640 && c.Height <= 640)
+            .OrderByDescending(c => (ulong)c.Width * c.Height)
+            .ThenByDescending(c => c.MaxFps)
+            .FirstOrDefault();
+
+        if (chosen == default)
+        {
+            chosen = candidates
+                .OrderBy(c => (ulong)c.Width * c.Height)
+                .ThenByDescending(c => c.MaxFps)
+                .FirstOrDefault();
+        }
+
+        if (chosen == default)
+        {
+            // Some drivers do not implement ENUM_FRAMESIZES at all. Keep the
+            // mode the driver currently reports instead of asking for a
+            // zero-sized format (which makes VIDIOC_S_FMT fail).
+            device.CurrentFormat = device.GetCurrentFormat();
+            device.PixelFormat = device.CurrentFormat.pix.pixelformat;
+            return device;
+        }
+
+        var bestInterval = new Data.v4l2_frmivalenum
+        {
+            width = chosen.Width,
+            height = chosen.Height,
+            pixel_format = device.PixelFormat
+        };
+
+        try
+        {
+            device.SetFormat(bestInterval);
+        }
+        catch
+        {
+            // The driver rejected the enumerated size; keep its current one.
+            device.CurrentFormat = device.GetCurrentFormat();
+            device.PixelFormat = device.CurrentFormat.pix.pixelformat;
+        }
 
         return device;
     }
@@ -170,6 +211,7 @@ public class Device : IDisposable {
         if (ret < 0) throw new Exception($"VIDIOC_S_FMT failed: errno={Marshal.GetLastWin32Error()}");
 
         CurrentFormat = fmt;
+        PixelFormat = fmt.pix.pixelformat;
     }
 
     public List<Data.v4l2_frmsizeenum> EnumerateFrameSizes(v4l2_pix_fmt pixelformat)
@@ -315,6 +357,19 @@ public class Device : IDisposable {
         if (ret != 0)
             throw new Exception($"VIDIOC_DQBUF failed: errno={Marshal.GetLastWin32Error()}");
 
+        const uint v4l2BufFlagError = 0x00000040;
+
+        if (buf.index >= _bufferCount)
+            throw new Exception($"VIDIOC_DQBUF returned invalid index {buf.index}");
+
+        // Corrupted/short frames must be requeued, not handed to the decoder.
+        if ((buf.flags & v4l2BufFlagError) != 0 || buf.bytesused > _bufferLengths[buf.index])
+        {
+            ret = NativeMethods.v4l2_ioctl_safe(_fileDescriptor, Ioctl.VIDIOC_QBUF, ref buf);
+            if (ret < 0) throw new Exception($"VIDIOC_QBUF failed: errno={Marshal.GetLastWin32Error()}");
+            return false;
+        }
+
         frame = new byte[buf.bytesused];
         Marshal.Copy(_bufferStarts[buf.index], frame, 0, (int)buf.bytesused);
 
@@ -340,7 +395,8 @@ public class Device : IDisposable {
 
     public void StopCapture()
     {
-        StopStreaming();
+        if (_fileDescriptor >= 0 && _bufferCount > 0)
+            StopStreaming();
     }
 
     private bool AttemptOpen()

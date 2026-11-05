@@ -18,7 +18,13 @@ public class Data {
 
         public bool HasFlag(V4L2Capabilities flag)
         {
-            return (capabilities & flag) != 0;
+            // For multi-node devices (UVC metadata nodes, etc.) the
+            // capabilities field is the union of all nodes and device_caps
+            // describes this node. Use device_caps when the driver says so.
+            var effective = (capabilities & V4L2Capabilities.DEVICE_CAPS) != 0
+                ? (V4L2Capabilities)device_caps
+                : capabilities;
+            return (effective & flag) != 0;
         }
     }
 

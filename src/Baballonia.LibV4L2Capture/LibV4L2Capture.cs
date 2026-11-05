@@ -43,17 +43,38 @@ public sealed class LibV4L2Capture(string source, ILogger<LibV4L2Capture> logger
     private void DecodeMJPEG(byte[] frame)
     {
         var mat = Cv2.ImDecode(frame, ImreadModes.Grayscale);
+        if (mat.Empty())
+        {
+            mat.Dispose();
+            return;
+        }
         SetRawMat(mat);
     }
 
     private void DecodeYUYV(byte[] frame, uint width, uint height)
     {
-        var yuyvMat = new Mat((int)height, (int)width, MatType.CV_8UC2);
-        Marshal.Copy(frame, 0, yuyvMat.Data, frame.Length);
+        var required = (int)(width * height * 2);
+        if (required <= 0 || frame.Length < required)
+            return;
 
-        var grayMat = new Mat();
-        Cv2.CvtColor(yuyvMat, grayMat, ColorConversionCodes.YUV2GRAY_YUY2);
-        SetRawMat(grayMat);
+        // Drivers may report trailing padding in bytesused; only copy the
+        // pixels that fit into the destination Mat.
+        if (frame.Length > required)
+            Array.Resize(ref frame, required);
+
+        var yuyvMat = new Mat((int)height, (int)width, MatType.CV_8UC2);
+        try
+        {
+            Marshal.Copy(frame, 0, yuyvMat.Data, frame.Length);
+
+            var grayMat = new Mat();
+            Cv2.CvtColor(yuyvMat, grayMat, ColorConversionCodes.YUV2GRAY_YUY2);
+            SetRawMat(grayMat);
+        }
+        finally
+        {
+            yuyvMat.Dispose();
+        }
     }
 
     private async Task VideoCapture_UpdateLoop(CancellationToken ct)

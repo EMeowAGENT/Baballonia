@@ -59,6 +59,13 @@ public enum V4L2Capabilities : uint
     DEVICE_CAPS = 0x80000000
 }
 
+public enum v4l2_frmsizetypes : uint
+{
+    V4L2_FRMSIZE_TYPE_DISCRETE = 1,
+    V4L2_FRMSIZE_TYPE_CONTINUOUS = 2,
+    V4L2_FRMSIZE_TYPE_STEPWISE = 3
+}
+
 public enum v4l2_frmivaltypes : uint
 {
     V4L2_FRMIVAL_TYPE_DISCRETE = 1,
