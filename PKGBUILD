@@ -4,7 +4,7 @@
 #   BUILDDIR="$HOME/build/baballonia" makepkg -si
 
 pkgname=baballonia-git
-pkgver=r0.0000000
+pkgver=r627.a903946
 pkgrel=1
 pkgdesc="Cross-platform, hardware-agnostic XR eye and face tracking (personal Linux fork)"
 arch=('x86_64')
@@ -71,11 +71,18 @@ package() {
     # Use the system onnxruntime so that a CUDA-enabled provider can be used.
     rm -f "$pkgdir/opt/$pkgname/libonnxruntime"*
 
-    # Trainer: use the source-based AUR package instead of the bundled
-    # PyInstaller CPU-only binary.
-    install -d "$pkgdir/opt/$pkgname/Calibration/Linux/Trainer"
-    rm -f "$pkgdir/opt/$pkgname/Calibration/Linux/Trainer/BabbleTrainer"
-    ln -s /opt/babbletrainer/babbletrainer.sh \
+    # Trainer: ship a patched copy of the AUR trainer scripts so that
+    # unilateral blink labels are trained independently per eye. The
+    # babble_data C++ module and Python dependencies still come from the
+    # babbletrainer package.
+    install -d "$pkgdir/opt/$pkgname/Calibration/Linux/Trainer/runtime"
+    install -Dm644 "$srcdir/$pkgname/trainer/main.py" \
+        "$pkgdir/opt/$pkgname/Calibration/Linux/Trainer/runtime/main.py"
+    install -Dm644 "$srcdir/$pkgname/trainer/models.py" \
+        "$pkgdir/opt/$pkgname/Calibration/Linux/Trainer/runtime/models.py"
+    install -Dm644 "$srcdir/$pkgname/trainer/trainer_distsampler.py" \
+        "$pkgdir/opt/$pkgname/Calibration/Linux/Trainer/runtime/trainer_distsampler.py"
+    install -Dm755 "$srcdir/$pkgname/trainer/BabbleTrainer.sh" \
         "$pkgdir/opt/$pkgname/Calibration/Linux/Trainer/BabbleTrainer"
 
     # Calibration overlay: use the system package.
