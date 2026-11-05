@@ -416,3 +416,6 @@ src/Baballonia/Firmware/Windows/espflash.exe
 src/Baballonia/Firmware/Linux/espflash
 src/Baballonia.Desktop/Calibration/Windows/Trainer/BabbleTrainer.exe
 src/Baballonia.Desktop/Calibration/Linux/Trainer/BabbleTrainer
+
+# makepkg
+*.pkg.tar.*
