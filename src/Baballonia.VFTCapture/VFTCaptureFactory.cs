@@ -2,6 +2,8 @@
 using Baballonia.VFTCapture.Linux;
 using Baballonia.VFTCapture.Windows;
 using Microsoft.Extensions.Logging;
+using System;
+using System.IO;
 
 namespace Baballonia.VFTCapture;
 
@@ -26,9 +28,35 @@ public class VFTCaptureFactory(ILoggerFactory loggerFactory) : ICaptureFactory
         // Hack - prevent VFTCapture from opening Babble trackers
         if (lowered == "openiristracker") return false;
         else if (OperatingSystem.IsWindows()) return !lowered.StartsWith("com");
-        else if (OperatingSystem.IsLinux()) return lowered.StartsWith("/dev/video");
+        else if (OperatingSystem.IsLinux())
+            return lowered.StartsWith("/dev/video") && IsViveFacialTracker(lowered);
 
         return false;
+    }
+
+    /// <summary>
+    /// On Linux every UVC camera is exposed as /dev/videoN, so matching the
+    /// path alone makes this module claim ordinary webcams. Check the V4L2
+    /// device name instead and only accept actual Vive facial trackers.
+    /// </summary>
+    private static bool IsViveFacialTracker(string devicePath)
+    {
+        try
+        {
+            var namePath = Path.Combine("/sys/class/video4linux",
+                Path.GetFileName(devicePath), "name");
+            if (!File.Exists(namePath))
+                return false;
+
+            var name = File.ReadAllText(namePath);
+            return name.Contains("Vive", StringComparison.OrdinalIgnoreCase)
+                   || name.Contains("HTC", StringComparison.OrdinalIgnoreCase)
+                   || name.Contains("Multimedia Camera", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public string GetProviderName() => "Vive Facial Tracker";
