@@ -4,7 +4,7 @@
 #   BUILDDIR="$HOME/build/baballonia" makepkg -si
 
 pkgname=baballonia-git
-pkgver=r627.a903946
+pkgver=r0.0000000
 pkgrel=1
 pkgdesc="Cross-platform, hardware-agnostic XR eye and face tracking (personal Linux fork)"
 arch=('x86_64')
