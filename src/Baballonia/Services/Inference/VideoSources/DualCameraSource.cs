@@ -14,85 +14,92 @@ public class DualCameraSource : IVideoSource
 
     public bool Start()
     {
-        return (LeftCam?.Stop() ?? true) && (RightCam?.Stop() ?? true);
+        return (LeftCam?.Start() ?? true) && (RightCam?.Start() ?? true);
     }
 
     public bool Stop()
     {
-        return (LeftCam?.Start() ?? true) && (RightCam?.Start() ?? true);
+        return (LeftCam?.Stop() ?? true) && (RightCam?.Stop() ?? true);
     }
 
     // Here we try to acquire 2 images from both cameras and stitch them into a single image
     // if at least one image can be acquired, try to stitch it with last second image
     public Mat? GetFrame(ColorType? color = null)
     {
-        var leftImage = LeftCam?.GetFrame(color);
-        var rightImage = RightCam?.GetFrame(color);
+        var newLeft = LeftCam?.GetFrame(color);
+        var newRight = RightCam?.GetFrame(color);
 
-        if (leftImage == null && rightImage == null)
+        if (newLeft == null && newRight == null)
             return null;
 
-        // Track which images are new vs fallback
-        var leftIsNew = leftImage != null;
-        var rightIsNew = rightImage != null;
+        var left = newLeft ?? LastLeftImage;
+        var right = newRight ?? LastRightImage;
 
-        leftImage ??= LastLeftImage;
-        rightImage ??= LastRightImage;
+        Mat? clonedLeft = null;
+        Mat? clonedRight = null;
+        Mat? resizedLeft = null;
+        Mat? resizedRight = null;
 
-
-        switch (leftImage)
+        try
         {
-            case null when rightImage == null:
+            if (left == null)
+            {
+                if (right == null)
+                    return null;
+                left = clonedLeft = right.Clone();
+            }
+            else if (right == null)
+            {
+                right = clonedRight = left.Clone();
+            }
+
+            if (left.Empty() || right.Empty())
                 return null;
-            case null:
-                leftImage = rightImage.Clone();
-                break;
-            default:
-                // Don't clone - preserve both cameras when both are available!
-                if (rightImage == null)
-                    rightImage = leftImage.Clone();
-                break;
+
+            int minHeight = Math.Min(left.Rows, right.Rows);
+            int minWidth = Math.Min(left.Cols, right.Cols);
+
+            resizedLeft = new Mat();
+            resizedRight = new Mat();
+            Cv2.Resize(left, resizedLeft, new Size(minWidth, minHeight));
+            Cv2.Resize(right, resizedRight, new Size(minWidth, minHeight));
+
+            int height = Math.Max(resizedRight.Rows, resizedLeft.Rows);
+            int width = resizedRight.Cols + resizedLeft.Cols;
+
+            Mat result = new Mat(height, width, resizedLeft.Type(), Scalar.All(0));
+
+            using (var leftRoi = new Mat(result, new Rect(0, 0, resizedLeft.Cols, resizedRight.Rows)))
+                resizedLeft.CopyTo(leftRoi);
+            using (var rightRoi = new Mat(result, new Rect(resizedLeft.Cols, 0, resizedRight.Cols, resizedRight.Rows)))
+                resizedRight.CopyTo(rightRoi);
+
+            // Update last images only for new frames.
+            if (newLeft != null)
+            {
+                var cached = resizedLeft.Clone();
+                LastLeftImage?.Dispose();
+                LastLeftImage = cached;
+            }
+
+            if (newRight != null)
+            {
+                var cached = resizedRight.Clone();
+                LastRightImage?.Dispose();
+                LastRightImage = cached;
+            }
+
+            return result;
         }
-
-        int minHeight = Math.Min(leftImage.Rows, rightImage.Rows);
-        int minWidth = Math.Min(leftImage.Cols, rightImage.Cols);
-
-        if (leftImage.Empty() || rightImage.Empty())
-            return null;
-            
-        Mat resizedLeft = new Mat();
-        Mat resizedRight = new Mat();
-        Cv2.Resize(leftImage, resizedLeft, new Size(minWidth, minHeight));
-        Cv2.Resize(rightImage, resizedRight, new Size(minWidth, minHeight));
-
-        int height = Math.Max(resizedRight.Rows, resizedLeft.Rows);
-        int width = resizedRight.Cols + resizedLeft.Cols;
-
-        Mat result = new Mat(height, width, resizedLeft.Type(), Scalar.All(0));
-
-        resizedLeft.CopyTo(result[new Rect(0, 0, resizedLeft.Cols, resizedRight.Rows)]);
-        resizedRight.CopyTo(result[new Rect(resizedLeft.Cols, 0, resizedRight.Cols, resizedRight.Rows)]);
-
-        // Update last images only for new frames
-        if (leftIsNew)
+        finally
         {
-            LastLeftImage?.Dispose();
-            LastLeftImage = resizedLeft.Clone();
+            newLeft?.Dispose();
+            newRight?.Dispose();
+            clonedLeft?.Dispose();
+            clonedRight?.Dispose();
+            resizedLeft?.Dispose();
+            resizedRight?.Dispose();
         }
-
-        if (rightIsNew)
-        {
-            LastRightImage?.Dispose();
-            LastRightImage = resizedRight.Clone();
-        }
-
-        // Only dispose new images, not the cached LastImages
-        if (leftIsNew)
-            resizedLeft.Dispose();
-        if (rightIsNew)
-            resizedRight.Dispose();
-
-        return result;
     }
 
     public void Dispose()

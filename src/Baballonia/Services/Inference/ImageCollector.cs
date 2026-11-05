@@ -16,8 +16,16 @@ public class ImageCollector : IImageTransformer
         }
 
         Mat merged = new Mat();
-        // swap left and right because inference requires them in that way
-        Cv2.Merge(split.Reverse().ToArray(), merged);
+        try
+        {
+            // swap left and right because inference requires them in that way
+            Cv2.Merge(split.Reverse().ToArray(), merged);
+        }
+        finally
+        {
+            foreach (var mat in split)
+                mat.Dispose();
+        }
 
         ImageQueue.Enqueue(merged);
 

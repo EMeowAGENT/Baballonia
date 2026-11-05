@@ -17,44 +17,51 @@ public class EyeProcessingPipeline(IEyePipelineEventBus eyePipelineEventBus) : D
         if(frame == null)
             return null;
 
-        if (_fastCorruptionDetector.IsCorrupted(frame).isCorrupted)
-            return null;
-
-        eyePipelineEventBus.Publish(new EyePipelineEvents.NewFrameEvent(frame));
-
-        var transformed = ImageTransformer?.Apply(frame);
-        if(transformed == null)
-            return null;
-
-        eyePipelineEventBus.Publish(new EyePipelineEvents.NewTransformedFrameEvent(transformed));
-
-        var collected = _imageCollector.Apply(transformed);
-        transformed.Dispose();
-        if (collected == null)
-            return null;
-
-        if (InferenceService == null)
-            return null;
-
-        ImageConverter?.Convert(collected, InferenceService.GetInputTensor());
-
-        var inferenceResult = InferenceService?.Run();
-        if(inferenceResult == null)
-            return null;
-
-        if (Filter != null)
+        Mat? transformed = null;
+        Mat? collected = null;
+        try
         {
-            inferenceResult = Filter.Filter(inferenceResult);
+            if (_fastCorruptionDetector.IsCorrupted(frame).isCorrupted)
+                return null;
+
+            eyePipelineEventBus.Publish(new EyePipelineEvents.NewFrameEvent(frame));
+
+            transformed = ImageTransformer?.Apply(frame);
+            if(transformed == null)
+                return null;
+
+            eyePipelineEventBus.Publish(new EyePipelineEvents.NewTransformedFrameEvent(transformed));
+
+            collected = _imageCollector.Apply(transformed);
+            if (collected == null)
+                return null;
+
+            if (InferenceService == null)
+                return null;
+
+            ImageConverter?.Convert(collected, InferenceService.GetInputTensor());
+
+            var inferenceResult = InferenceService?.Run();
+            if(inferenceResult == null)
+                return null;
+
+            if (Filter != null)
+            {
+                inferenceResult = Filter.Filter(inferenceResult);
+            }
+
+            ProcessExpressions(ref inferenceResult);
+
+            eyePipelineEventBus.Publish(new EyePipelineEvents.NewFilteredResultEvent(inferenceResult));
+
+            return inferenceResult;
         }
-
-        ProcessExpressions(ref inferenceResult);
-
-        eyePipelineEventBus.Publish(new EyePipelineEvents.NewFilteredResultEvent(inferenceResult));
-
-        frame.Dispose();
-        transformed.Dispose();
-
-        return inferenceResult;
+        finally
+        {
+            collected?.Dispose();
+            transformed?.Dispose();
+            frame.Dispose();
+        }
     }
 
     private bool ProcessExpressions(ref float[] arKitExpressions)

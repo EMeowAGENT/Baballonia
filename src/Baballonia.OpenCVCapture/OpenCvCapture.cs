@@ -68,25 +68,44 @@ public sealed class OpenCvCapture(string source, ILogger<OpenCvCapture> logger) 
         return IsReady;
     }
 
-    private Task VideoCapture_UpdateLoop(VideoCapture capture, CancellationToken ct)
+    private async Task VideoCapture_UpdateLoop(VideoCapture capture, CancellationToken ct)
     {
         var frame = new Mat();
-        while (!ct.IsCancellationRequested)
+        try
         {
-            try
+            while (!ct.IsCancellationRequested)
             {
-                IsReady = capture.Read(frame);
-                // no need to push empty Mat
-                if (IsReady)
-                    SetRawMat(frame);
-            }
-            catch (Exception)
-            {
-                // ignored
+                try
+                {
+                    var read = capture.Read(frame);
+                    IsReady = read;
+                    if (read && !frame.Empty())
+                    {
+                        // Ownership of the Mat moves to the consumer.
+                        SetRawMat(frame);
+                        frame = new Mat();
+                    }
+                    else
+                    {
+                        // Do not busy-spin when the camera is unplugged or
+                        // has not produced a frame yet.
+                        await Task.Delay(10, ct);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception)
+                {
+                    await Task.Delay(10, ct);
+                }
             }
         }
-
-        return Task.CompletedTask;
+        finally
+        {
+            frame.Dispose();
+        }
     }
 
     public override Task<bool> StopCapture()

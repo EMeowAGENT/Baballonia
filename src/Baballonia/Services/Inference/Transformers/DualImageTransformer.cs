@@ -25,17 +25,20 @@ public class DualImageTransformer : IImageTransformer
         // transform both simultaneously with same settings
         var leftTransformed = LeftTransformer.Apply(leftRoi);
         var rightTransformed =  RightTransformer.Apply(rightRoi);
-        if (leftTransformed == null || rightTransformed == null)
+        try
+        {
+            if (leftTransformed == null || rightTransformed == null)
+                return null;
+
+            var combined = new Mat();
+            Cv2.Merge([leftTransformed, rightTransformed], combined);
+            return combined;
+        }
+        finally
         {
             leftTransformed?.Dispose();
             rightTransformed?.Dispose();
-            return null;
         }
-
-        var combined = new Mat();
-        Cv2.Merge([leftTransformed, rightTransformed], combined);
-
-        return combined;
     }
 
 }

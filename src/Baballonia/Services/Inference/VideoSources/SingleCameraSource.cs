@@ -61,26 +61,41 @@ public class SingleCameraSource : IVideoSource
         else
         {
             var convertedMat = new Mat();
-            Cv2.CvtColor(rawMat, convertedMat,
-                (rawMat.Channels() == 1)
-                    ? color switch
-                    {
-                        ColorType.Bgr24 => ColorConversionCodes.GRAY2BGR,
-                        ColorType.Rgb24 => ColorConversionCodes.GRAY2RGB,
-                        ColorType.Rgba32 => ColorConversionCodes.GRAY2RGBA,
-                    }
-                    : color switch
-                    {
-                        ColorType.Gray8 => ColorConversionCodes.BGR2GRAY,
-                        ColorType.Rgb24 => ColorConversionCodes.BGR2RGB,
-                        ColorType.Rgba32 => ColorConversionCodes.BGR2RGBA,
-                    });
+            try
+            {
+                Cv2.CvtColor(rawMat, convertedMat,
+                    (rawMat.Channels() == 1)
+                        ? color switch
+                        {
+                            ColorType.Bgr24 => ColorConversionCodes.GRAY2BGR,
+                            ColorType.Rgb24 => ColorConversionCodes.GRAY2RGB,
+                            ColorType.Rgba32 => ColorConversionCodes.GRAY2RGBA,
+                        }
+                        : color switch
+                        {
+                            ColorType.Gray8 => ColorConversionCodes.BGR2GRAY,
+                            ColorType.Rgb24 => ColorConversionCodes.BGR2RGB,
+                            ColorType.Rgba32 => ColorConversionCodes.BGR2RGBA,
+                        });
+            }
+            catch
+            {
+                convertedMat.Dispose();
+                rawMat.Dispose();
+                throw;
+            }
+
+            // The converted Mat is what the caller owns now.
+            rawMat.Dispose();
             image = convertedMat;
         }
 
         if (image.Empty())
+        {
+            image.Dispose();
             return null;
-            
+        }
+
         return image;
     }
 
