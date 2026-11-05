@@ -74,12 +74,14 @@ struct wvrg_eye_gaze_packet {
 
 ### 3.2 角度与四元数约定
 
-- 右视 yaw > 0；仰视 pitch > 0。
-- 单位弧度构造：
-  - `q_yaw   = [0, sin(yaw/2), 0, cos(yaw/2)]`
-  - `q_pitch = [sin(pitch/2), 0, 0, cos(pitch/2)]`
-  - `q = q_yaw * q_pitch`（四元数乘法，**先 yaw 后 pitch**）
-- 其中数组顺序为 `[x, y, z, w]`。
+- 角度字段采用 **右视 yaw > 0、仰视 pitch > 0** 的语义（便于日志/调试）。
+- `orientation` 四元数使用 **OpenXR 右手系**：`+X` 右、`+Y` 上、`-Z` 前。
+- 绕 `+Y` 的正旋转会把前方转向左侧，因此右视 yaw 必须取负：
+  - `q_yaw(-yaw) = [0, sin(-yaw/2), 0, cos(-yaw/2)]`
+  - `q_pitch(pitch) = [sin(pitch/2), 0, 0, cos(pitch/2)]`
+  - `q = q_yaw(-yaw) * q_pitch(pitch)`（**先 yaw 后 pitch**）
+- 数组顺序为 `[x, y, z, w]`。
+- 因此“看右”时 `qy < 0`；“看上”时 `qx > 0`。
 - `combined` 的 yaw / pitch 取左右眼平均：
   - `combined_yaw   = (left_yaw   + right_yaw)   / 2`
   - `combined_pitch = (left_pitch + right_pitch) / 2`
@@ -103,23 +105,17 @@ struct wvrg_eye_gaze_packet {
 
 ---
 
-## 4. Baballonia 侧输入映射
+## 4. Baballonia 侧输出（已处理值）
 
-原始眼动样本顺序固定为：
+Baballonia 发布的是 **已处理、已稳定化** 的眼动数据，与 OSC/VRCFT 路径同源，不是原始模型输出：
 
-```
-leftPitch, leftYaw, leftLid, rightPitch, rightYaw, rightLid
-```
+- 已完成左右眼遮挡修正（单眼闭合时使用另一只眼）
+- 已应用 `StabilizeEyes` 的收敛/平均
+- 已完成 lid 语义转换：`0` = 闭，`1` = 开
+- 角度单位是 **度**，范围约 `-45°..+45°`
+- `combined` 值由发送端直接给出，接收端不需要再平均
 
-每个分量归一化到 `0..1`，换算规则：
-
-- yaw / pitch：`deg = (v - 0.5) * 90`，范围 `-45°..+45°`
-- lid：直接使用 `0..1`，`0` = 闭，`1` = 开
-- 组合：
-  - `yaw   = (left_yaw   + right_yaw)   / 2`
-  - `pitch = (left_pitch + right_pitch) / 2`
-
-然后按 3.2 节构造四元数，按第 2 节打包发送。
+因此接收端 **不要** 再做 `(v - 0.5) * 90` 或 `1 - lid` 之类的换算；直接使用包内字段，并按 3.2 构造/使用四元数。
 
 ---
 
@@ -161,11 +157,11 @@ leftPitch, leftYaw, leftLid, rightPitch, rightYaw, rightLid
 - `timestamp_ns = 1_000_000_000`（开机后 1 s）
 - `flags = 0x07`（combined / left / right 全部有效）
 - 左眼 `yaw=8°, pitch=4°`，右眼 `yaw=12°, pitch=6°`，`lid` 左 `0.8` 右 `0.6`
-- combined `yaw=10°, pitch=5°` → `q = (0.043453, 0.087073, -0.003802, 0.995247)`
+- combined `yaw=10°, pitch=5°` → `q = q_yaw(-10°) * q_pitch(5°) = (0.043453, -0.087073, 0.003802, 0.995247)`
 
 ```
 00: 57 56 47 5A 01 07 00 00 00 CA 9A 3B 00 00 00 00
-10: 32 FC 31 3D 38 53 B2 3D 9C 25 79 BB 7A C8 7E 3F
+10: 32 FC 31 3D 38 53 B2 BD 9C 25 79 3B 7A C8 7E 3F
 20: 00 00 00 41 00 00 80 40 00 00 40 41 00 00 C0 40
 30: CD CC 4C 3F 9A 99 19 3F 00 00 00 00 00 00 00 00
 ```
@@ -180,8 +176,8 @@ leftPitch, leftYaw, leftLid, rightPitch, rightYaw, rightLid
 | 6..7 | `00 00` | reserved | `0` |
 | 8..15 | `00 CA 9A 3B 00 00 00 00` | timestamp_ns | `1_000_000_000` |
 | 16..19 | `32 FC 31 3D` | qx | `0.043453` |
-| 20..23 | `38 53 B2 3D` | qy | `0.087073` |
-| 24..27 | `9C 25 79 BB` | qz | `-0.003802` |
+| 20..23 | `38 53 B2 BD` | qy | `-0.087073` |
+| 24..27 | `9C 25 79 3B` | qz | `0.003802` |
 | 28..31 | `7A C8 7E 3F` | qw | `0.995247` |
 | 32..35 | `00 00 00 41` | left_yaw_deg | `8.0` |
 | 36..39 | `00 00 80 40` | left_pitch_deg | `4.0` |

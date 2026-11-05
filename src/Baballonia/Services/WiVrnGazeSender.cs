@@ -27,7 +27,6 @@ public sealed class WiVrnGazeSender : IHostedService, IDisposable
 
     private const int PacketSize = 64;
     private const double MinSendIntervalMs = 11.0; // ~90 Hz upper bound
-    private const float DegPerUnit = 90.0f;
     private const float LidValidThreshold = 0.1f;
 
     private static readonly byte[] Magic = "WVGZ"u8.ToArray();
@@ -162,29 +161,25 @@ public sealed class WiVrnGazeSender : IHostedService, IDisposable
 
     /// <summary>
     /// Runs on the eye pipeline thread: only converts and enqueues, never touches the socket.
-    /// Sample layout: leftPitch, leftYaw, leftLid, rightPitch, rightYaw, rightLid (0..1).
+    /// Values are already processed by EyeProcessingPipeline: degrees and 0/closed..1/open lid.
     /// </summary>
     private void OnEyeSample(EyePipelineEvents.EyeGazeSampleEvent e)
     {
-        var sample = e.Sample;
-        if (sample is not { Length: >= Utils.EyeRawExpressions })
+        if (!float.IsFinite(e.CombinedYawDeg) || !float.IsFinite(e.CombinedPitchDeg) ||
+            !float.IsFinite(e.LeftYawDeg) || !float.IsFinite(e.LeftPitchDeg) ||
+            !float.IsFinite(e.RightYawDeg) || !float.IsFinite(e.RightPitchDeg))
             return;
 
-        var leftPitch = sample[0];
-        var leftYaw = sample[1];
-        var leftLid = sample[2];
-        var rightPitch = sample[3];
-        var rightYaw = sample[4];
-        var rightLid = sample[5];
+        var leftLid = Math.Clamp(e.LeftLid, 0.0f, 1.0f);
+        var rightLid = Math.Clamp(e.RightLid, 0.0f, 1.0f);
 
-        var combinedYaw = (leftYaw + rightYaw) * 0.5f;
-        var combinedPitch = (leftPitch + rightPitch) * 0.5f;
+        var yawRad = ToRadians(e.CombinedYawDeg);
+        var pitchRad = ToRadians(e.CombinedPitchDeg);
 
-        var yawRad = ToRadians((combinedYaw - 0.5f) * DegPerUnit);
-        var pitchRad = ToRadians((combinedPitch - 0.5f) * DegPerUnit);
-
-        // q = q_yaw (around +Y) * q_pitch (around +X)
-        var halfYaw = yawRad * 0.5f;
+        // OpenXR is right-handed (+X right, +Y up, -Z forward): a positive
+        // rotation around +Y looks left, so a right-positive yaw must be negated.
+        // q = q_yaw(-yaw) * q_pitch(pitch)
+        var halfYaw = -yawRad * 0.5f;
         var halfPitch = pitchRad * 0.5f;
         var sy = MathF.Sin(halfYaw);
         var cy = MathF.Cos(halfYaw);
@@ -215,10 +210,10 @@ public sealed class WiVrnGazeSender : IHostedService, IDisposable
         var payload = new GazePayload(
             CurrentMonotonicNanoseconds(),
             _lastQx, _lastQy, _lastQz, _lastQw,
-            (leftYaw - 0.5f) * DegPerUnit,
-            (leftPitch - 0.5f) * DegPerUnit,
-            (rightYaw - 0.5f) * DegPerUnit,
-            (rightPitch - 0.5f) * DegPerUnit,
+            e.LeftYawDeg,
+            e.LeftPitchDeg,
+            e.RightYawDeg,
+            e.RightPitchDeg,
             leftLid,
             rightLid,
             flags);

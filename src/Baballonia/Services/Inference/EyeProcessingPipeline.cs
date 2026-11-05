@@ -51,9 +51,6 @@ public class EyeProcessingPipeline(IEyePipelineEventBus eyePipelineEventBus) : D
                 inferenceResult = Filter.Filter(inferenceResult);
             }
 
-            eyePipelineEventBus.Publish(
-                new EyePipelineEvents.EyeGazeSampleEvent((float[])inferenceResult.Clone()));
-
             ProcessExpressions(ref inferenceResult);
 
             eyePipelineEventBus.Publish(new EyePipelineEvents.NewFilteredResultEvent(inferenceResult));
@@ -84,7 +81,10 @@ public class EyeProcessingPipeline(IEyePipelineEventBus eyePipelineEventBus) : D
         var rightYaw = arKitExpressions[4] * mulV - mulV / 2;
         var rightLid = 1 - arKitExpressions[5];
 
-        var eyeY = (leftPitch * leftLid + rightPitch * rightLid) / (leftLid + rightLid);
+        var lidSum = leftLid + rightLid;
+        var eyeY = lidSum > 1e-4f
+            ? (leftPitch * leftLid + rightPitch * rightLid) / lidSum
+            : 0.0f;
 
         var leftEyeYawCorrected = rightYaw * (1 - leftLid) + leftYaw * leftLid;
         var rightEyeYawCorrected = leftYaw * (1 - rightLid) + rightYaw * rightLid;
@@ -99,6 +99,19 @@ public class EyeProcessingPipeline(IEyePipelineEventBus eyePipelineEventBus) : D
             leftEyeYawCorrected = averagedYaw - convergence;
             rightEyeYawCorrected = averagedYaw + convergence;
         }
+
+        // Publish the corrected, stabilized values (the same data the OSC/VRCFT
+        // path consumes) instead of raw model output. Lock 1/open, 0/closed.
+        var combinedYaw = (leftEyeYawCorrected + rightEyeYawCorrected) * 0.5f;
+        eyePipelineEventBus.Publish(new EyePipelineEvents.EyeGazeSampleEvent(
+            combinedYaw * 45.0f,
+            eyeY * 45.0f,
+            leftEyeYawCorrected * 45.0f,
+            leftPitch * 45.0f,
+            rightEyeYawCorrected * 45.0f,
+            rightPitch * 45.0f,
+            leftLid,
+            rightLid));
 
         // [left pitch, left yaw, left lid...
         float[] convertedExpressions = new float[Utils.EyeRawExpressions];
