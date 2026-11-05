@@ -92,6 +92,21 @@ public partial class TrainerService(ILogger<TrainerService> logger) : ITrainerSe
         if (!File.Exists(trainerPath))
             throw new FileNotFoundException(trainerPath + " not found");
 
+        // The application is commonly installed in a read-only location (e.g.
+        // /opt or /usr). The trainer writes checkpoints (model_best.pt and
+        // friends) into its working directory, so give it a persistent,
+        // writable per-user workspace instead of the install directory.
+        var workspacePath = Path.Combine(Baballonia.Utils.PersistentDataDirectory, "Trainer");
+        Directory.CreateDirectory(workspacePath);
+
+        // Keep the shipped baseline checkpoints available without overwriting
+        // a warm-start checkpoint left behind by a previous training run.
+        foreach (var baseline in Directory.GetFiles(basePath, "baseline_*.pth"))
+        {
+            var destination = Path.Combine(workspacePath, Path.GetFileName(baseline));
+            if (!File.Exists(destination))
+                File.Copy(baseline, destination);
+        }
 
         lock (_lock)
         {
@@ -109,10 +124,23 @@ public partial class TrainerService(ILogger<TrainerService> logger) : ITrainerSe
                 Arguments = launchArgs,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
-                WorkingDirectory = basePath,
+                WorkingDirectory = workspacePath,
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden,
             };
+
+            // Baballonia sets OMP_NUM_THREADS=1 for its ONNX/OpenCV threads.
+            // Child processes inherit the environment, which makes PyTorch
+            // single-threaded and training several times slower. Give the
+            // trainer its own thread budget.
+            var threadCount = Math.Max(1, Environment.ProcessorCount)
+                .ToString(CultureInfo.InvariantCulture);
+            startInfo.Environment["OMP_NUM_THREADS"] = threadCount;
+            startInfo.Environment["MKL_NUM_THREADS"] = threadCount;
+
+            logger.LogInformation(
+                "Starting trainer in {Workspace} with {Threads} CPU threads",
+                workspacePath, threadCount);
 
             _trainerProcess = new Process
             {
