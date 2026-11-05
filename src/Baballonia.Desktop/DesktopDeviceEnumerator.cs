@@ -125,18 +125,18 @@ public sealed class DesktopDeviceEnumerator(ILogger<DesktopDeviceEnumerator> log
     [SupportedOSPlatform("linux")]
     private void AddLinuxUvcDevices(Dictionary<string, string> cameraDict)
     {
-        [DllImport("libudev.so")] static extern IntPtr udev_new();
-        [DllImport("libudev.so")] static extern IntPtr udev_unref(IntPtr udev);
-        [DllImport("libudev.so")] static extern IntPtr udev_enumerate_new(IntPtr udev);
-        [DllImport("libudev.so")] static extern int udev_enumerate_add_match_subsystem(IntPtr udevEnumerate, [MarshalAs(UnmanagedType.LPUTF8Str)] string subsystem);
-        [DllImport("libudev.so")] static extern int udev_enumerate_scan_devices(IntPtr udevEnumerate);
-        [DllImport("libudev.so")] static extern IntPtr udev_enumerate_get_list_entry(IntPtr udevEnumerate);
-        [DllImport("libudev.so")] static extern IntPtr udev_list_entry_get_next(IntPtr listEntry);
-        [DllImport("libudev.so")] static extern IntPtr udev_list_entry_get_name(IntPtr listEntry);
-        [DllImport("libudev.so")] static extern IntPtr udev_device_new_from_syspath(IntPtr udev, IntPtr syspath);
-        [DllImport("libudev.so")] static extern IntPtr udev_device_get_devnode(IntPtr udevDevice);
-        [DllImport("libudev.so")] static extern IntPtr udev_device_get_property_value(IntPtr udevDevice, [MarshalAs(UnmanagedType.LPUTF8Str)] string property);
-        [DllImport("libudev.so")] static extern IntPtr udev_enumerate_unref(IntPtr udevEnumerate);
+        [DllImport("libudev.so.1")] static extern IntPtr udev_new();
+        [DllImport("libudev.so.1")] static extern IntPtr udev_unref(IntPtr udev);
+        [DllImport("libudev.so.1")] static extern IntPtr udev_enumerate_new(IntPtr udev);
+        [DllImport("libudev.so.1")] static extern int udev_enumerate_add_match_subsystem(IntPtr udevEnumerate, [MarshalAs(UnmanagedType.LPUTF8Str)] string subsystem);
+        [DllImport("libudev.so.1")] static extern int udev_enumerate_scan_devices(IntPtr udevEnumerate);
+        [DllImport("libudev.so.1")] static extern IntPtr udev_enumerate_get_list_entry(IntPtr udevEnumerate);
+        [DllImport("libudev.so.1")] static extern IntPtr udev_list_entry_get_next(IntPtr listEntry);
+        [DllImport("libudev.so.1")] static extern IntPtr udev_list_entry_get_name(IntPtr listEntry);
+        [DllImport("libudev.so.1")] static extern IntPtr udev_device_new_from_syspath(IntPtr udev, IntPtr syspath);
+        [DllImport("libudev.so.1")] static extern IntPtr udev_device_get_devnode(IntPtr udevDevice);
+        [DllImport("libudev.so.1")] static extern IntPtr udev_device_get_property_value(IntPtr udevDevice, [MarshalAs(UnmanagedType.LPUTF8Str)] string property);
+        [DllImport("libudev.so.1")] static extern IntPtr udev_enumerate_unref(IntPtr udevEnumerate);
 
         [DllImport("libc.so.6")] static extern int open(IntPtr file, int oflag, int unused);
         [DllImport("libc.so.6")] static extern int close(int fd);
@@ -243,7 +243,9 @@ public sealed class DesktopDeviceEnumerator(ILogger<DesktopDeviceEnumerator> log
             }
             else if (OperatingSystem.IsLinux())
             {
-                var ports = Directory.GetFiles("/dev", "ttyACM*");
+                var ports = Directory.GetFiles("/dev", "ttyACM*")
+                    .Concat(Directory.GetFiles("/dev", "ttyUSB*"))
+                    .Distinct();
                 foreach (var port in ports)
                 {
                     EnsureUniqueKey(cameraDict, $"Serial Device {Path.GetFileName(port)}", port);
