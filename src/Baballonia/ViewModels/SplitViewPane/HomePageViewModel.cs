@@ -116,8 +116,21 @@ public partial class HomePageViewModel : ViewModelBase, IDisposable
             // the NEED take precedent over visual preferences.
             //var advancedEnabled = _localSettingsService.ReadSetting<bool>("AppSettings_AdvancedOptions");
             var advancedEnabled = true;
+
+            // The dropdown stores friendly names (e.g. "ETVR openiristracker
+            // (video2)") while capture factories match on device paths. Resolve
+            // the name first, otherwise every factory rejects it and the
+            // backend dropdown disappears (issue #278).
+            _deviceEnumerator.Cameras ??= _deviceEnumerator.UpdateCameras();
+            var captureAddress = value;
+            if (!string.IsNullOrEmpty(value) &&
+                _deviceEnumerator.Cameras.TryGetValue(value, out var mappedAddress))
+            {
+                captureAddress = mappedAddress;
+            }
+
             var availableCaptureFactories = _platformConnector.GetCaptureFactories()
-                .Where(factory => factory.CanConnect(value)).ToArray();
+                .Where(factory => factory.CanConnect(captureAddress)).ToArray();
 
             var shouldShow = advancedEnabled && availableCaptureFactories.Length >= 2;
             CaptureMethodVisible = shouldShow;

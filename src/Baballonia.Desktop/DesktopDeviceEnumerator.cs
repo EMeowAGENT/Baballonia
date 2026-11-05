@@ -69,6 +69,11 @@ public sealed class DesktopDeviceEnumerator(ILogger<DesktopDeviceEnumerator> log
             Logger.LogDebug("Detected camera: '{FriendlyName}' -> '{DeviceId}'", camera.Key, camera.Value);
         }
 
+        // Keep the cache in sync when the UI refreshes the device list.
+        // Previously this returned a fresh dictionary without updating
+        // Cameras, so a camera that re-enumerated to another /dev/video node
+        // after a replug was still opened by its old path.
+        Cameras = cameraDict;
         return cameraDict;
     }
 
