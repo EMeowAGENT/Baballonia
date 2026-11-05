@@ -288,7 +288,7 @@ public class CommandDispatchStep(string name) : ICalibrationStep
     }
 }
 
-public class TrainerCalibrationStep(ITrainerService overlayTrainer) : ICalibrationStep
+public class TrainerCalibrationStep(ITrainerService overlayTrainer, ProcessingLoopService processingLoop) : ICalibrationStep
 {
     public string Name => "trainer";
 
@@ -297,11 +297,22 @@ public class TrainerCalibrationStep(ITrainerService overlayTrainer) : ICalibrati
         dispatcher.Dispatch(new RunVariableLenghtRoutinePacket(Name, TimeSpan.FromSeconds(120)));
         var onProgressHandler = (TrainerProgressReportPacket packet) => { dispatcher.Dispatch(packet); };
         overlayTrainer.OnProgress += onProgressHandler;
-        overlayTrainer.RunTraining(Path.Combine(Utils.ModelDataDirectory, "user_cal.bin"),
-            Path.Combine(Utils.ModelDataDirectory, "tuned_temporal_eye_tracking_latest.onnx"));
-        await overlayTrainer.WaitAsync();
 
-        overlayTrainer.OnProgress -= onProgressHandler;
+        // Training is CPU-bound. Keep the live face/eye pipelines and the
+        // preview from competing with it; the calibration overlay and its
+        // progress socket run on their own threads and keep working.
+        processingLoop.Pause();
+        try
+        {
+            overlayTrainer.RunTraining(Path.Combine(Utils.ModelDataDirectory, "user_cal.bin"),
+                Path.Combine(Utils.ModelDataDirectory, "tuned_temporal_eye_tracking_latest.onnx"));
+            await overlayTrainer.WaitAsync();
+        }
+        finally
+        {
+            overlayTrainer.OnProgress -= onProgressHandler;
+            processingLoop.Start();
+        }
     }
 }
 
@@ -338,6 +349,7 @@ public class MergeBinsStep(params string[] binNames) : ICalibrationStep
 public class EyeCalibration(
     EyeCaptureStepFactory eyeCaptureStepFactory,
     ITrainerService trainer,
+    ProcessingLoopService processingLoop,
     IEyePipelineEventBus eyePipelineEventBus)
 {
     public IEnumerable<ICalibrationStep> BasicAllCalibration()
@@ -371,7 +383,7 @@ public class EyeCalibration(
 
             // new MergeBinsStep("gaze.bin", "blink.bin", "widen.bin", "squint.bin", "brow.bin"),
             new MergeBinsStep("gaze.bin", "blink.bin"),
-            new TrainerCalibrationStep(trainer),
+            new TrainerCalibrationStep(trainer, processingLoop),
             new CommandDispatchStep("close")
 
         ];
@@ -408,7 +420,7 @@ public class EyeCalibration(
 
             //new MergeBinsStep("gaze.bin", "blink.bin", "widen.bin", "squint.bin", "brow.bin"),
             new MergeBinsStep("gaze.bin", "blink.bin"),
-            new TrainerCalibrationStep(trainer),
+            new TrainerCalibrationStep(trainer, processingLoop),
             new CommandDispatchStep("close")
 
         ];
@@ -424,7 +436,7 @@ public class EyeCalibration(
             new GazeCaptureStep(eyePipelineEventBus),
 
             new MergeBinsStep("gaze.bin", "blink.bin"),
-            new TrainerCalibrationStep(trainer),
+            new TrainerCalibrationStep(trainer, processingLoop),
             new CommandDispatchStep("close")
 
         ];
@@ -446,7 +458,7 @@ public class EyeCalibration(
             ),
 
             new MergeBinsStep("gaze.bin", "blink.bin"),
-            new TrainerCalibrationStep(trainer),
+            new TrainerCalibrationStep(trainer, processingLoop),
             new CommandDispatchStep("close")
 
         ];
