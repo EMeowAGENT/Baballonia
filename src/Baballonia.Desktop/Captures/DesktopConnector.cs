@@ -25,8 +25,12 @@ public class DesktopConnector : IPlatformConnector
         _logger = logger;
         _serviceProvider = serviceProvider;
 
-        // Load all modules
-        var dlls = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Modules"), "*.dll");
+        // Load all modules. Directory.GetFiles() returns files in filesystem
+        // order, which is not stable across installs; sort the names so the
+        // fallback provider selection is deterministic.
+        var dlls = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Modules"), "*.dll")
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
         _logger.LogDebug("Found {DllCount} DLL files in application directory: {DllFiles}", dlls.Length,
             string.Join(", ", dlls.Select(Path.GetFileName)));
         _captureFactories = LoadAssembliesFromPath(dlls);

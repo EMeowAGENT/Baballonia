@@ -38,9 +38,7 @@ public class SingleCameraSourceFactory
         }
         else
         {
-            provider = _platformConnector.GetCaptureFactories().First(factory => factory.CanConnect(address));
-            if(provider == null)
-                throw new ArgumentNullException($"No suitable provider for {address} found");
+            provider = SelectProvider(address);
         }
 
         var capture = provider.Create(address);
@@ -57,11 +55,28 @@ public class SingleCameraSourceFactory
             camera = mappedAddress;
         }
 
-        var provider = _platformConnector.GetCaptureFactories().FirstOrDefault(factory => factory.CanConnect(camera));
-        if (provider == null)
-            throw new ArgumentNullException($"No provider for {address} not found");
-
+        var provider = SelectProvider(camera);
         return CreateStart(address, provider.GetProviderName());
+    }
+
+    private ICaptureFactory SelectProvider(string address)
+    {
+        var factories = _platformConnector.GetCaptureFactories();
+
+        // On Linux /dev/video* is shared by the V4L2, OpenCV and (for actual
+        // Vive facial trackers) VFT backends. Prefer the native V4L2 backend;
+        // it handles UVC/MJPEG far more reliably than OpenCV and avoids the
+        // VFT module claiming an ordinary camera.
+        if (OperatingSystem.IsLinux())
+        {
+            var v4l2 = factories.FirstOrDefault(factory =>
+                factory.CanConnect(address) && factory.GetProviderName() == "V4L2 Camera");
+            if (v4l2 != null)
+                return v4l2;
+        }
+
+        return factories.FirstOrDefault(factory => factory.CanConnect(address))
+               ?? throw new ArgumentNullException($"No suitable provider for {address} found");
     }
 
     public Task<SingleCameraSource?> CreateStart(string address, string providerName)
