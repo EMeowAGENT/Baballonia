@@ -335,6 +335,28 @@
           IconPath="TopSpeedRegular"
           SettingToggled="{Binding UseGPU, Mode=TwoWay}" />
 
+      <controls:SettingsBlock
+          Title="WiVRn eye gaze (UDP)"
+          Description="Send raw eye gaze to a local WiVRn instance on 127.0.0.1. Requires a restart to apply."
+          IconPath="EyeTrackingRegular">
+        <controls:SettingsBlock.SettingsContent>
+          <StackPanel
+              VerticalAlignment="Center"
+              Orientation="Horizontal"
+              Spacing="8">
+            <ToggleSwitch
+                VerticalAlignment="Center"
+                IsChecked="{Binding WiVrnGazeEnabled, Mode=TwoWay}" />
+            <TextBox
+                x:Name="WiVrnGazePort"
+                Width="90"
+                VerticalAlignment="Center"
+                Watermark="9010"
+                Text="{Binding WiVrnGazePort, Mode=TwoWay, UpdateSourceTrigger=LostFocus, FallbackValue='9010'}" />
+          </StackPanel>
+        </controls:SettingsBlock.SettingsContent>
+      </controls:SettingsBlock>
+
       <controls:SettingsToggle
         Title="{x:Static assets:Resources.Settings_DFR_Header}"
         Description="{x:Static assets:Resources.Settings_DFR_Description}"

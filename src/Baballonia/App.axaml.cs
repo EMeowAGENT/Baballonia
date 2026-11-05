@@ -109,6 +109,7 @@ public partial class App : Application
             services.AddSingleton<EyeProcessingPipeline>();
             services.AddSingleton<EyePipelineManager>();
             services.AddSingleton<IEyePipelineEventBus, EyePipelineEventBus>();
+            services.AddSingleton<WiVrnGazeSender>();
             services.AddSingleton<SingleCameraSourceFactory>();
             services.AddSingleton<FirmwareSessionFactory>();
 
@@ -161,6 +162,7 @@ public partial class App : Application
 
             services.AddHostedService(provider => provider.GetService<OscRecvService>()!);
             services.AddHostedService(provider => provider.GetService<ParameterSenderService>()!);
+            services.AddHostedService(provider => provider.GetRequiredService<WiVrnGazeSender>());
 
             // Configuration
             IConfiguration config = new ConfigurationBuilder()

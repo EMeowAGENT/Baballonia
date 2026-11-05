@@ -53,6 +53,14 @@ public partial class AppSettingsViewModel : ViewModelBase
     private bool _useGPU;
 
     [ObservableProperty]
+    [property: SavedSetting("AppSettings_WiVrnGazeEnabled", false)]
+    private bool _wiVrnGazeEnabled;
+
+    [ObservableProperty]
+    [property: SavedSetting("AppSettings_WiVrnGazePort", 9010)]
+    private int _wiVrnGazePort;
+
+    [ObservableProperty]
     [property: SavedSetting("AppSettings_SteamVRAutoStart", true)]
     private bool _steamvrAutoStart;
 

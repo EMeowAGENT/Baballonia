@@ -15,6 +15,12 @@ public class FacePipelineEvents
 }
 public class EyePipelineEvents
 {
+    /// <summary>
+    /// Raw post-filter eye values in 0..1, ordered
+    /// leftPitch, leftYaw, leftLid, rightPitch, rightYaw, rightLid.
+    /// </summary>
+    public record EyeGazeSampleEvent(float[] Sample);
+
     public record NewFrameEvent(Mat image);
 
     public record NewTransformedFrameEvent(Mat image);

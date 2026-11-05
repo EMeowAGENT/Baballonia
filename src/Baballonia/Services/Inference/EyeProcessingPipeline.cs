@@ -51,6 +51,9 @@ public class EyeProcessingPipeline(IEyePipelineEventBus eyePipelineEventBus) : D
                 inferenceResult = Filter.Filter(inferenceResult);
             }
 
+            eyePipelineEventBus.Publish(
+                new EyePipelineEvents.EyeGazeSampleEvent((float[])inferenceResult.Clone()));
+
             ProcessExpressions(ref inferenceResult);
 
             eyePipelineEventBus.Publish(new EyePipelineEvents.NewFilteredResultEvent(inferenceResult));
