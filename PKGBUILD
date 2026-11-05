@@ -33,7 +33,7 @@ makedepends=(
     unzip
 )
 provides=('baballonia')
-conflicts=('baballonia' 'baballonia-git')
+conflicts=('baballonia')
 
 source=("$pkgname::git+https://github.com/EMeowAGENT/Baballonia.git#branch=pkg")
 sha256sums=('SKIP')
@@ -45,7 +45,10 @@ pkgver() {
 
 prepare() {
     cd "$pkgname"
-    git submodule update --init --recursive
+    # Only HyperText.Avalonia is referenced by the desktop build; the
+    # VRCFaceTracking and espflash submodules are only needed for their own
+    # modules and would otherwise pull a lot of unrelated history.
+    git submodule update --init src/HyperText.Avalonia
 }
 
 build() {
