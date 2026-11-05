@@ -419,3 +419,8 @@ src/Baballonia.Desktop/Calibration/Linux/Trainer/BabbleTrainer
 
 # makepkg
 *.pkg.tar.*
+
+# makepkg artifacts from building in the repo root
+/baballonia-git/
+/pkg/
+/src/baballonia-git/

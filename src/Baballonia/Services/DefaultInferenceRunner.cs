@@ -188,10 +188,59 @@ public class DefaultInferenceRunner(ILoggerFactory loggerFactory) : IInferenceRu
 
         using var results = _session.Run(inputs);
 
-        var output = results[0].AsEnumerable<float>().ToArray();
+        var tensors = results
+            .Select(result => result.AsEnumerable<float>().ToArray())
+            .ToArray();
+        var flattened = tensors.SelectMany(values => values).ToArray();
+
+        float[] output;
+        if (_outputExpressionNames is { Length: > 0 } names &&
+            flattened.Length == names.Length &&
+            EyePipelineNames.All(name => names.Contains(name)))
+        {
+            // Newer trainers export one tensor per sub-model (gaze/blink/brow,
+            // per side) instead of the old single [batch, 6] tensor. The
+            // metadata lists the logical channel order, so flatten the output
+            // tensors and select the six channels the eye pipeline consumes.
+            var nameToIndex = new Dictionary<string, int>(names.Length);
+            for (var i = 0; i < names.Length; i++)
+                nameToIndex[names[i]] = i;
+
+            output = EyePipelineNames
+                .Select(name => flattened[nameToIndex[name]])
+                .ToArray();
+
+            _logger.LogDebug(
+                "Mapped {Model} output ({TensorCount} tensors, {ValueCount} values) to the 6-channel eye layout",
+                _outputExpressionNames, tensors.Length, flattened.Length);
+        }
+        else if (tensors.Length == 1)
+        {
+            output = tensors[0];
+        }
+        else
+        {
+            // Multiple outputs without usable metadata. Keep all values so a
+            // future runner can map them; the caller logs the size mismatch.
+            output = flattened;
+            _logger.LogWarning(
+                "Model returned {TensorCount} output tensors without a usable blendshape_names mapping",
+                tensors.Length);
+        }
+
         OutputSize = output.Length;
         return output;
     }
+
+    private static readonly string[] EyePipelineNames =
+    [
+        "leftEyePitch",
+        "leftEyeYaw",
+        "leftEyeLid",
+        "rightEyePitch",
+        "rightEyeYaw",
+        "rightEyeLid"
+    ];
 
     // Dictionary mapping eye output names to their indices
     private static readonly Dictionary<string, int> OutputIndexMap = new()
