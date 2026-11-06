@@ -20,9 +20,11 @@ reuse its `blink` routine for the timer/visual prompt. **When the overlay shows
 the blink prompt for a wink step, only close the requested eye.** The overlay
 does not tell you which eye it wants, so follow the step order:
 
-1. Normal blink prompt: close both eyes.
-2. First extra blink prompt: close only your left eye (`wink_left`).
-3. Second extra blink prompt: close only your right eye (`wink_right`).
+1. Normal blink prompt: close both eyes and hold them closed for the capture.
+2. First extra blink prompt: close only your left eye (`wink_left`) and hold it
+   closed; keep your right eye open and relaxed.
+3. Second extra blink prompt: close only your right eye (`wink_right`) and hold
+   it closed; keep your left eye open and relaxed.
 
 Use your own left/right, not the side of the preview: the eye cameras can be
 horizontally flipped, so the preview is not a reliable left/right reference.
