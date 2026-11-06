@@ -424,3 +424,6 @@ src/Baballonia.Desktop/Calibration/Linux/Trainer/BabbleTrainer
 /baballonia-git/
 /pkg/
 /src/baballonia-git/
+
+# local makepkg BUILDDIR
+/build/
