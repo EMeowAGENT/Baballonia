@@ -102,16 +102,21 @@ public class EyeProcessingPipeline(IEyePipelineEventBus eyePipelineEventBus) : D
 
         // Publish the corrected, stabilized values (the same data the OSC/VRCFT
         // path consumes) instead of raw model output. Lock 1/open, 0/closed.
+        //
+        // The model's left/right heads are swapped relative to the physical
+        // eyes: the OSC/VRCFT path compensates by writing rightYaw to
+        // LeftEyeX and leftYaw to RightEyeX. Mirror that here so the UDP
+        // per-eye fields are physical left/right as well.
         var combinedYaw = (leftEyeYawCorrected + rightEyeYawCorrected) * 0.5f;
         eyePipelineEventBus.Publish(new EyePipelineEvents.EyeGazeSampleEvent(
             combinedYaw * 45.0f,
             eyeY * 45.0f,
-            leftEyeYawCorrected * 45.0f,
-            leftPitch * 45.0f,
             rightEyeYawCorrected * 45.0f,
             rightPitch * 45.0f,
-            leftLid,
-            rightLid));
+            leftEyeYawCorrected * 45.0f,
+            leftPitch * 45.0f,
+            rightLid,
+            leftLid));
 
         // [left pitch, left yaw, left lid...
         float[] convertedExpressions = new float[Utils.EyeRawExpressions];
