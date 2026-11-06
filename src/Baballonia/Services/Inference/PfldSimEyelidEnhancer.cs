@@ -276,6 +276,12 @@ public sealed class PfldSimEyelidEnhancer : IEyelidEnhancer
         {
             tcs.TrySetCanceled();
         }
+        else if (_leftCalibrationSamples.Count == 0 && _rightCalibrationSamples.Count == 0)
+        {
+            _logger?.LogWarning(
+                "Eyelid calibration collected no samples; is the eye camera running?");
+            tcs.TrySetResult(false);
+        }
         else
         {
             var (leftOpen, leftClosed) = CalculateCalibrationBounds(_leftCalibrationSamples);
