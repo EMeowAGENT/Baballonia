@@ -904,4 +904,49 @@
   <data name="Tray_Exit" xml:space="preserve">
     <value>退出</value>
   </data>
+  <data name="Calibration_Eyelid_Button" xml:space="preserve">
+    <value>校准眼皮</value>
+  </data>
+  <data name="Calibration_Eyelid_Status_Collecting" xml:space="preserve">
+    <value>自然看向屏幕并正常眨眼几秒钟...</value>
+  </data>
+  <data name="Calibration_Eyelid_Status_Done" xml:space="preserve">
+    <value>眼皮校准完成</value>
+  </data>
+  <data name="Calibration_Eyelid_Status_Unavailable" xml:space="preserve">
+    <value>眼皮增强器不可用</value>
+  </data>
+  <data name="Calibration_Eyelid_Status_Canceled" xml:space="preserve">
+    <value>眼皮校准已取消</value>
+  </data>
+  <data name="Calibration_Eyelid_Status_Error" xml:space="preserve">
+    <value>眼皮校准失败：{0}</value>
+  </data>
+  <data name="Settings_EyelidEnhancer_Header" xml:space="preserve">
+    <value>眼皮增强</value>
+  </data>
+  <data name="Settings_EyelidEnhancer_Description" xml:space="preserve">
+    <value>使用专用关键点模型，提高眼皮开合和 wink 的准确度。</value>
+  </data>
+  <data name="Settings_EyelidEnhancer_Disabled" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="Settings_EyelidEnhancer_Pfld" xml:space="preserve">
+    <value>PFLD 关键点</value>
+  </data>
+  <data name="Settings_EyelidMode_Header" xml:space="preserve">
+    <value>眼皮模式</value>
+  </data>
+  <data name="Settings_EyelidMode_Description" xml:space="preserve">
+    <value>同时使用双眼，或把单眼结果镜像到两侧。</value>
+  </data>
+  <data name="Settings_EyelidMode_Both" xml:space="preserve">
+    <value>双眼</value>
+  </data>
+  <data name="Settings_EyelidMode_LeftOnly" xml:space="preserve">
+    <value>仅左眼</value>
+  </data>
+  <data name="Settings_EyelidMode_RightOnly" xml:space="preserve">
+    <value>仅右眼</value>
+  </data>
 </root>

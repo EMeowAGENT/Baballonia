@@ -238,10 +238,7 @@ public class BaseEyeCaptureStep(
     float browAngry = 0,
     float widen = 0,
     float squint = 0,
-    float dilate = 0,
-    float? leftLid = null,
-    float? rightLid = null,
-    string? routineName = null)
+    float dilate = 0)
     : BaseCaptureStep(name, flags, time)
 {
     public override async Task ExecuteAsync(OverlayMessageDispatcher dispatcher, CancellationToken ct)
@@ -250,7 +247,7 @@ public class BaseEyeCaptureStep(
 
         eyePipelineEvent.Subscribe<EyePipelineEvents.NewTransformedFrameEvent>(OnNewEyeFrame);
 
-        dispatcher.Dispatch(new RunVariableLenghtRoutinePacket(routineName ?? Name, TimeToTun));
+        dispatcher.Dispatch(new RunVariableLenghtRoutinePacket(Name, TimeToTun));
         StartCollecting();
         await WaitForRoutineFinishAsync(ct);
 
@@ -268,8 +265,8 @@ public class BaseEyeCaptureStep(
         var frame = base.AddFrame(images);
         frame.Header = frame.Header with
         {
-            RoutineLeftLid = leftLid ?? lid,
-            RoutineRightLid = rightLid ?? lid,
+            RoutineLeftLid = lid,
+            RoutineRightLid = lid,
             RoutineBrowRaise = browRaise,
             RoutineBrowAngry = browAngry,
             RoutineWiden = widen,
@@ -327,12 +324,8 @@ public class EyeCaptureStepFactory(IEyePipelineEventBus eyePipelineEvent)
         float browAngry = 0,
         float widen = 0,
         float squint = 0,
-        float dilate = 0,
-        float? leftLid = null,
-        float? rightLid = null,
-        string? routineName = null) =>
-        new(eyePipelineEvent, name, flags, time, lid, browRaise, browAngry, widen, squint, dilate,
-            leftLid, rightLid, routineName);
+        float dilate = 0) =>
+        new(eyePipelineEvent, name, flags, time, lid, browRaise, browAngry, widen, squint, dilate);
 }
 
 public class MergeBinsStep(params string[] binNames) : ICalibrationStep
@@ -373,28 +366,6 @@ public class EyeCalibration(
                 TimeSpan.FromSeconds(20), lid: 0
             ),
 
-            // Independent lid data. The stock overlay only has a "blink"
-            // animation, so keep that routine name for the prompt while the
-            // recorded labels describe a unilateral wink.
-            //
-            // FrameCollector stores the right camera in LeftJpeg and the left
-            // camera in RightJpeg, and the trainer pairs RoutineLeftLid with
-            // LeftJpeg. A physical left wink therefore writes
-            // RoutineRightLid=0 (left camera closed) and RoutineLeftLid=1
-            // (right camera open).
-            new BaseTutorialStep("blinktutorial", TimeSpan.FromSeconds(4)),
-            eyeCaptureStepFactory.Create("wink_left",
-                CaptureFlags.FLAG_GOOD_DATA |
-                CaptureFlags.FLAG_VERSION_BIT1,
-                TimeSpan.FromSeconds(10), leftLid: 1, rightLid: 0, routineName: "blink"
-            ),
-            new BaseTutorialStep("blinktutorial", TimeSpan.FromSeconds(4)),
-            eyeCaptureStepFactory.Create("wink_right",
-                CaptureFlags.FLAG_GOOD_DATA |
-                CaptureFlags.FLAG_VERSION_BIT1,
-                TimeSpan.FromSeconds(10), leftLid: 0, rightLid: 1, routineName: "blink"
-            ),
-
             // new BaseTutorialStep("widentutorial", TimeSpan.FromSeconds(10)),
             // eyeCaptureStepFactory.Create("widen",
             //     CaptureFlags.FLAG_GOOD_DATA | CaptureFlags.FLAG_VERSION_BIT1, TimeSpan.FromSeconds(20), widen: 1, lid: 1),
@@ -411,7 +382,7 @@ public class EyeCalibration(
             //     CaptureFlags.FLAG_GOOD_DATA | CaptureFlags.FLAG_WHATEVER_NOT_IMPLEMENTED));
 
             // new MergeBinsStep("gaze.bin", "blink.bin", "widen.bin", "squint.bin", "brow.bin"),
-            new MergeBinsStep("gaze.bin", "blink.bin", "wink_left.bin", "wink_right.bin"),
+            new MergeBinsStep("gaze.bin", "blink.bin"),
             new TrainerCalibrationStep(trainer, processingLoop),
             new CommandDispatchStep("close")
 
@@ -435,21 +406,6 @@ public class EyeCalibration(
                 TimeSpan.FromSeconds(20)
             ),
 
-            new BaseTutorialStep("blinktutorial", TimeSpan.FromSeconds(3)),
-            eyeCaptureStepFactory.Create("wink_left",
-                CaptureFlags.FLAG_GOOD_DATA |
-                CaptureFlags.FLAG_VERSION_BIT1 |
-                CaptureFlags.FLAG_ROUTINE_BIT1,
-                TimeSpan.FromSeconds(5), leftLid: 1, rightLid: 0, routineName: "blink"
-            ),
-            new BaseTutorialStep("blinktutorial", TimeSpan.FromSeconds(3)),
-            eyeCaptureStepFactory.Create("wink_right",
-                CaptureFlags.FLAG_GOOD_DATA |
-                CaptureFlags.FLAG_VERSION_BIT1 |
-                CaptureFlags.FLAG_ROUTINE_BIT1,
-                TimeSpan.FromSeconds(5), leftLid: 0, rightLid: 1, routineName: "blink"
-            ),
-
             //new BaseTutorialStep("widentutorial", TimeSpan.FromSeconds(4)),
             //eyeCaptureStepFactory.Create("widen",
             //    CaptureFlags.FLAG_GOOD_DATA | CaptureFlags.FLAG_VERSION_BIT1, TimeSpan.FromSeconds(20)),
@@ -463,7 +419,7 @@ public class EyeCalibration(
             //    CaptureFlags.FLAG_GOOD_DATA | CaptureFlags.FLAG_VERSION_BIT1, TimeSpan.FromSeconds(20)),
 
             //new MergeBinsStep("gaze.bin", "blink.bin", "widen.bin", "squint.bin", "brow.bin"),
-            new MergeBinsStep("gaze.bin", "blink.bin", "wink_left.bin", "wink_right.bin"),
+            new MergeBinsStep("gaze.bin", "blink.bin"),
             new TrainerCalibrationStep(trainer, processingLoop),
             new CommandDispatchStep("close")
 
@@ -501,22 +457,7 @@ public class EyeCalibration(
                 TimeSpan.FromSeconds(20)
             ),
 
-            new BaseTutorialStep("blinktutorial", TimeSpan.FromSeconds(4)),
-            eyeCaptureStepFactory.Create("wink_left",
-                CaptureFlags.FLAG_GOOD_DATA |
-                CaptureFlags.FLAG_VERSION_BIT1 |
-                CaptureFlags.FLAG_ROUTINE_BIT1,
-                TimeSpan.FromSeconds(10), leftLid: 1, rightLid: 0, routineName: "blink"
-            ),
-            new BaseTutorialStep("blinktutorial", TimeSpan.FromSeconds(4)),
-            eyeCaptureStepFactory.Create("wink_right",
-                CaptureFlags.FLAG_GOOD_DATA |
-                CaptureFlags.FLAG_VERSION_BIT1 |
-                CaptureFlags.FLAG_ROUTINE_BIT1,
-                TimeSpan.FromSeconds(10), leftLid: 0, rightLid: 1, routineName: "blink"
-            ),
-
-            new MergeBinsStep("gaze.bin", "blink.bin", "wink_left.bin", "wink_right.bin"),
+            new MergeBinsStep("gaze.bin", "blink.bin"),
             new TrainerCalibrationStep(trainer, processingLoop),
             new CommandDispatchStep("close")
 

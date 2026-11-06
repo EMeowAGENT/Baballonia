@@ -1,4 +1,5 @@
 using Avalonia.Threading;
+using Baballonia.Assets;
 using Baballonia.Contracts;
 using Baballonia.Helpers;
 using Baballonia.Models;
@@ -11,6 +12,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Baballonia.ViewModels.SplitViewPane;
 
@@ -35,6 +38,21 @@ public partial class CalibrationViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ResetMinimumsCommand), nameof(ResetMaximumsCommand))]
     private bool _isManualCalibrationEnabled;
+
+    private CancellationTokenSource? _eyelidCalibrationCts;
+
+    [ObservableProperty]
+    private bool _isEyelidCalibrationRunning;
+
+    [ObservableProperty]
+    private string? _eyelidCalibrationStatus;
+
+    public bool CanStartEyelidCalibration => !IsEyelidCalibrationRunning;
+
+    partial void OnIsEyelidCalibrationRunningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanStartEyelidCalibration));
+    }
 
     public CalibrationViewModel(EyePipelineManager eyePipelineManager)
     {
@@ -290,6 +308,42 @@ public partial class CalibrationViewModel : ViewModelBase, IDisposable
         LoadInitialSettings();
     }
 
+    [RelayCommand]
+    private async Task CalibrateEyelidsAsync()
+    {
+        if (IsEyelidCalibrationRunning)
+            return;
+
+        IsEyelidCalibrationRunning = true;
+        EyelidCalibrationStatus = Resources.Calibration_Eyelid_Status_Collecting;
+        _eyelidCalibrationCts = new CancellationTokenSource();
+
+        try
+        {
+            var success = await _eyePipelineManager.CalibrateEyelidsAsync(
+                TimeSpan.FromSeconds(3),
+                _eyelidCalibrationCts.Token);
+
+            EyelidCalibrationStatus = success
+                ? Resources.Calibration_Eyelid_Status_Done
+                : Resources.Calibration_Eyelid_Status_Unavailable;
+        }
+        catch (OperationCanceledException)
+        {
+            EyelidCalibrationStatus = Resources.Calibration_Eyelid_Status_Canceled;
+        }
+        catch (Exception ex)
+        {
+            EyelidCalibrationStatus = string.Format(Resources.Calibration_Eyelid_Status_Error, ex.Message);
+        }
+        finally
+        {
+            _eyelidCalibrationCts?.Dispose();
+            _eyelidCalibrationCts = null;
+            IsEyelidCalibrationRunning = false;
+        }
+    }
+
     private void LoadInitialSettings()
     {
         LoadInitialSettings(EyeSettings);
@@ -316,5 +370,8 @@ public partial class CalibrationViewModel : ViewModelBase, IDisposable
     {
         // _processingLoopService.ExpressionUpdateEvent -= ExpressionUpdateHandler;
         _calibrationService.AutoCalibrationEnabledChanged -= OnAutoCalibrationEnabledChanged;
+        _eyelidCalibrationCts?.Cancel();
+        _eyelidCalibrationCts?.Dispose();
+        _eyelidCalibrationCts = null;
     }
 }

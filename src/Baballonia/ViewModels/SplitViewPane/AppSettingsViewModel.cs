@@ -92,6 +92,14 @@ public partial class AppSettingsViewModel : ViewModelBase
     private bool _stabilizeEyes;
 
     [ObservableProperty]
+    [property: SavedSetting("EyeHome_EyelidEnhancerType", "pfld")]
+    private string _eyelidEnhancerType = "pfld";
+
+    [ObservableProperty]
+    [property: SavedSetting("EyeHome_EyelidMode", "Both")]
+    private string _eyelidMode = "Both";
+
+    [ObservableProperty]
     [property: SavedSetting("AppSettings_AutoCalibrationEnabled", false)]
     private bool _autoCalibrationEnabled;
 
@@ -162,6 +170,16 @@ public partial class AppSettingsViewModel : ViewModelBase
             if (p.PropertyName == nameof(StabilizeEyes))
             {
                 _eyePipelineManager.LoadEyeStabilization();
+            }
+
+            if (p.PropertyName == nameof(EyelidEnhancerType))
+            {
+                _eyePipelineManager.LoadEyelidEnhancer();
+            }
+
+            if (p.PropertyName == nameof(EyelidMode))
+            {
+                _eyePipelineManager.LoadEyelidEnhancer();
             }
         };
     }

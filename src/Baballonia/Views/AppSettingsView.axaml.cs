@@ -8,6 +8,7 @@ using Baballonia.Contracts;
 using Baballonia.Services;
 using Baballonia.ViewModels.SplitViewPane;
 using CommunityToolkit.Mvvm.DependencyInjection;
+using System;
 
 namespace Baballonia.Views;
 
@@ -17,6 +18,8 @@ public partial class AppSettingsView : ViewBase
     private readonly ILanguageSelectorService _languageSelectorService;
     private readonly ComboBox _themeComboBox;
     private readonly ComboBox _langComboBox;
+    private readonly ComboBox _eyelidEnhancerTypeCombo;
+    private readonly ComboBox _eyelidModeCombo;
     private readonly NumericUpDown _selectedMinFreqCutoffUpDown;
     private readonly NumericUpDown _selectedSpeedCutoffUpDown;
 
@@ -31,6 +34,14 @@ public partial class AppSettingsView : ViewBase
         _languageSelectorService = Ioc.Default.GetService<ILanguageSelectorService>()!;
         _langComboBox = this.Find<ComboBox>("LangCombo")!;
         _langComboBox.SelectionChanged += LangComboBox_SelectionChanged;
+
+        _eyelidEnhancerTypeCombo = this.Find<ComboBox>("EyelidEnhancerTypeCombo")!;
+        _eyelidEnhancerTypeCombo.SelectionChanged += EyelidEnhancerTypeCombo_SelectionChanged;
+
+        _eyelidModeCombo = this.Find<ComboBox>("EyelidModeCombo")!;
+        _eyelidModeCombo.SelectionChanged += EyelidModeCombo_SelectionChanged;
+
+        DataContextChanged += AppSettingsView_DataContextChanged;
 
         _selectedMinFreqCutoffUpDown = this.Find<NumericUpDown>("SelectedMinFreqCutoffUpDown")!;
         _selectedSpeedCutoffUpDown = this.Find<NumericUpDown>("SelectedSpeedCutoffUpDown")!;
@@ -99,6 +110,50 @@ public partial class AppSettingsView : ViewBase
     ~AppSettingsView()
     {
         _themeComboBox.SelectionChanged -= ThemeComboBox_SelectionChanged;
+        _eyelidEnhancerTypeCombo.SelectionChanged -= EyelidEnhancerTypeCombo_SelectionChanged;
+        _eyelidModeCombo.SelectionChanged -= EyelidModeCombo_SelectionChanged;
+        DataContextChanged -= AppSettingsView_DataContextChanged;
+    }
+
+    private void AppSettingsView_DataContextChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is not AppSettingsViewModel vm)
+            return;
+
+        _eyelidEnhancerTypeCombo.SelectedIndex = vm.EyelidEnhancerType switch
+        {
+            "disabled" => 0,
+            _ => 1
+        };
+
+        _eyelidModeCombo.SelectedIndex = vm.EyelidMode switch
+        {
+            "LeftOnly" => 1,
+            "RightOnly" => 2,
+            _ => 0
+        };
+    }
+
+    private void EyelidEnhancerTypeCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_eyelidEnhancerTypeCombo.SelectedItem is not ComboBoxItem item)
+            return;
+
+        if (DataContext is not AppSettingsViewModel vm)
+            return;
+
+        vm.EyelidEnhancerType = item.Tag?.ToString() ?? "pfld";
+    }
+
+    private void EyelidModeCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_eyelidModeCombo.SelectedItem is not ComboBoxItem item)
+            return;
+
+        if (DataContext is not AppSettingsViewModel vm)
+            return;
+
+        vm.EyelidMode = item.Tag?.ToString() ?? "Both";
     }
 
     private void ThemeComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)

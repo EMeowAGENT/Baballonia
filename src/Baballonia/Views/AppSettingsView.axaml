@@ -370,6 +370,31 @@
           SettingToggled="{Binding StabilizeEyes, Mode=TwoWay}" />
 
       <controls:SettingsBlock
+          Title="{x:Static assets:Resources.Settings_EyelidEnhancer_Header}"
+          Description="{x:Static assets:Resources.Settings_EyelidEnhancer_Description}"
+          IconPath="EyeTrackingRegular">
+        <controls:SettingsBlock.SettingsContent>
+          <ComboBox x:Name="EyelidEnhancerTypeCombo" VerticalAlignment="Center">
+            <ComboBoxItem Tag="disabled" Content="{x:Static assets:Resources.Settings_EyelidEnhancer_Disabled}" />
+            <ComboBoxItem Tag="pfld" Content="{x:Static assets:Resources.Settings_EyelidEnhancer_Pfld}" />
+          </ComboBox>
+        </controls:SettingsBlock.SettingsContent>
+      </controls:SettingsBlock>
+
+      <controls:SettingsBlock
+          Title="{x:Static assets:Resources.Settings_EyelidMode_Header}"
+          Description="{x:Static assets:Resources.Settings_EyelidMode_Description}"
+          IconPath="EyeTrackingRegular">
+        <controls:SettingsBlock.SettingsContent>
+          <ComboBox x:Name="EyelidModeCombo" VerticalAlignment="Center">
+            <ComboBoxItem Tag="Both" Content="{x:Static assets:Resources.Settings_EyelidMode_Both}" />
+            <ComboBoxItem Tag="LeftOnly" Content="{x:Static assets:Resources.Settings_EyelidMode_LeftOnly}" />
+            <ComboBoxItem Tag="RightOnly" Content="{x:Static assets:Resources.Settings_EyelidMode_RightOnly}" />
+          </ComboBox>
+        </controls:SettingsBlock.SettingsContent>
+      </controls:SettingsBlock>
+
+      <controls:SettingsBlock
         Title="{x:Static assets:Resources.Settings_LogLevel_Header}"
         Description="{x:Static assets:Resources.Settings_LogLevel_Description}"
         IconPath="SendLoggingRegular">

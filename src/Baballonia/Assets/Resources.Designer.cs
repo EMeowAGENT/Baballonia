@@ -2406,5 +2406,140 @@ namespace Baballonia.Assets {
                 return ResourceManager.GetString("VRC_UseNativeEyeTracking_Header", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Calibrate Eyelids.
+        /// </summary>
+        public static string Calibration_Eyelid_Button {
+            get {
+                return ResourceManager.GetString("Calibration_Eyelid_Button", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Eyelid calibration canceled.
+        /// </summary>
+        public static string Calibration_Eyelid_Status_Canceled {
+            get {
+                return ResourceManager.GetString("Calibration_Eyelid_Status_Canceled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Look at the screen and blink naturally for a few seconds....
+        /// </summary>
+        public static string Calibration_Eyelid_Status_Collecting {
+            get {
+                return ResourceManager.GetString("Calibration_Eyelid_Status_Collecting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Eyelid calibration complete.
+        /// </summary>
+        public static string Calibration_Eyelid_Status_Done {
+            get {
+                return ResourceManager.GetString("Calibration_Eyelid_Status_Done", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Eyelid calibration failed: {0}.
+        /// </summary>
+        public static string Calibration_Eyelid_Status_Error {
+            get {
+                return ResourceManager.GetString("Calibration_Eyelid_Status_Error", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Eyelid enhancer is not available.
+        /// </summary>
+        public static string Calibration_Eyelid_Status_Unavailable {
+            get {
+                return ResourceManager.GetString("Calibration_Eyelid_Status_Unavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Uses a dedicated landmark model for more accurate eyelid openness and winks..
+        /// </summary>
+        public static string Settings_EyelidEnhancer_Description {
+            get {
+                return ResourceManager.GetString("Settings_EyelidEnhancer_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Disabled.
+        /// </summary>
+        public static string Settings_EyelidEnhancer_Disabled {
+            get {
+                return ResourceManager.GetString("Settings_EyelidEnhancer_Disabled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Eyelid enhancer.
+        /// </summary>
+        public static string Settings_EyelidEnhancer_Header {
+            get {
+                return ResourceManager.GetString("Settings_EyelidEnhancer_Header", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to PFLD landmarks.
+        /// </summary>
+        public static string Settings_EyelidEnhancer_Pfld {
+            get {
+                return ResourceManager.GetString("Settings_EyelidEnhancer_Pfld", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Both eyes.
+        /// </summary>
+        public static string Settings_EyelidMode_Both {
+            get {
+                return ResourceManager.GetString("Settings_EyelidMode_Both", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Use both eyes, or mirror one eye to both sides..
+        /// </summary>
+        public static string Settings_EyelidMode_Description {
+            get {
+                return ResourceManager.GetString("Settings_EyelidMode_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Eyelid mode.
+        /// </summary>
+        public static string Settings_EyelidMode_Header {
+            get {
+                return ResourceManager.GetString("Settings_EyelidMode_Header", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Left eye only.
+        /// </summary>
+        public static string Settings_EyelidMode_LeftOnly {
+            get {
+                return ResourceManager.GetString("Settings_EyelidMode_LeftOnly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Right eye only.
+        /// </summary>
+        public static string Settings_EyelidMode_RightOnly {
+            get {
+                return ResourceManager.GetString("Settings_EyelidMode_RightOnly", resourceCulture);
+            }
+        }
     }
 }

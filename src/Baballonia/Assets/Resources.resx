@@ -904,4 +904,49 @@ This is usually easy to fix! Just install the “Tracking Loss Fix” firmware b
   <data name="Tray_Exit" xml:space="preserve">
       <value>Exit</value>
   </data>
+  <data name="Calibration_Eyelid_Button" xml:space="preserve">
+    <value>Calibrate Eyelids</value>
+  </data>
+  <data name="Calibration_Eyelid_Status_Collecting" xml:space="preserve">
+    <value>Look at the screen and blink naturally for a few seconds...</value>
+  </data>
+  <data name="Calibration_Eyelid_Status_Done" xml:space="preserve">
+    <value>Eyelid calibration complete</value>
+  </data>
+  <data name="Calibration_Eyelid_Status_Unavailable" xml:space="preserve">
+    <value>Eyelid enhancer is not available</value>
+  </data>
+  <data name="Calibration_Eyelid_Status_Canceled" xml:space="preserve">
+    <value>Eyelid calibration canceled</value>
+  </data>
+  <data name="Calibration_Eyelid_Status_Error" xml:space="preserve">
+    <value>Eyelid calibration failed: {0}</value>
+  </data>
+  <data name="Settings_EyelidEnhancer_Header" xml:space="preserve">
+    <value>Eyelid enhancer</value>
+  </data>
+  <data name="Settings_EyelidEnhancer_Description" xml:space="preserve">
+    <value>Uses a dedicated landmark model for more accurate eyelid openness and winks.</value>
+  </data>
+  <data name="Settings_EyelidEnhancer_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Settings_EyelidEnhancer_Pfld" xml:space="preserve">
+    <value>PFLD landmarks</value>
+  </data>
+  <data name="Settings_EyelidMode_Header" xml:space="preserve">
+    <value>Eyelid mode</value>
+  </data>
+  <data name="Settings_EyelidMode_Description" xml:space="preserve">
+    <value>Use both eyes, or mirror one eye to both sides.</value>
+  </data>
+  <data name="Settings_EyelidMode_Both" xml:space="preserve">
+    <value>Both eyes</value>
+  </data>
+  <data name="Settings_EyelidMode_LeftOnly" xml:space="preserve">
+    <value>Left eye only</value>
+  </data>
+  <data name="Settings_EyelidMode_RightOnly" xml:space="preserve">
+    <value>Right eye only</value>
+  </data>
 </root>

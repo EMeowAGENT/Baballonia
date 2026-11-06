@@ -10,6 +10,24 @@ public class EyeProcessingPipeline(IEyePipelineEventBus eyePipelineEventBus) : D
     private readonly FastCorruptionDetector.FastCorruptionDetector _fastCorruptionDetector = new();
     private readonly ImageCollector _imageCollector = new();
 
+    public enum EyelidMode
+    {
+        Both,
+        LeftOnly,
+        RightOnly
+    }
+
+    /// <summary>
+    /// Optional dedicated eyelid model. It runs on the dual-eye image before
+    /// the temporal eye model and overrides the lid channels afterwards.
+    /// </summary>
+    public IEyelidEnhancer? EyelidEnhancer { get; set; }
+
+    /// <summary>
+    /// Which eye the eyelid enhancer should use when mirroring a single eye.
+    /// </summary>
+    public EyelidMode EyelidModeSetting { get; set; } = EyelidMode.Both;
+
     public bool StabilizeEyes { get; set; } = true;
 
     public float[]? RunUpdate()
@@ -31,6 +49,7 @@ public class EyeProcessingPipeline(IEyePipelineEventBus eyePipelineEventBus) : D
             if(transformed == null)
                 return null;
 
+            EyelidEnhancer?.CaptureEyeImages(transformed);
             eyePipelineEventBus.Publish(new EyePipelineEvents.NewTransformedFrameEvent(transformed));
 
             collected = _imageCollector.Apply(transformed);
@@ -45,6 +64,8 @@ public class EyeProcessingPipeline(IEyePipelineEventBus eyePipelineEventBus) : D
             var inferenceResult = InferenceService?.Run();
             if(inferenceResult == null)
                 return null;
+
+            EyelidEnhancer?.Enhance(inferenceResult);
 
             if (Filter != null)
             {
@@ -141,6 +162,7 @@ public class EyeProcessingPipeline(IEyePipelineEventBus eyePipelineEventBus) : D
         TryDisposeObject(ImageConverter);
         TryDisposeObject(InferenceService);
         TryDisposeObject(Filter);
+        TryDisposeObject(EyelidEnhancer);
         TryDisposeObject(_fastCorruptionDetector);
         TryDisposeObject(_imageCollector);
     }
