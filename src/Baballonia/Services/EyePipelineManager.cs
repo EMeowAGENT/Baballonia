@@ -165,8 +165,9 @@ public class EyePipelineManager
             return;
         }
 
-        (_pipeline.EyelidEnhancer as IDisposable)?.Dispose();
+        var previousEnhancer = _pipeline.EyelidEnhancer;
         _pipeline.EyelidEnhancer = null;
+        previousEnhancer?.Dispose();
         _hasLoadedEyelidEnhancer = true;
         _loadedEyelidEnhancerType = enhancerType;
         _loadedEyelidModel = modelName;
