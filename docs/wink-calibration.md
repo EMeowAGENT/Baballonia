@@ -7,8 +7,8 @@ This fork adds two capture steps after the normal blink step:
 
 | Step | Label | What to do |
 | --- | --- | --- |
-| `wink_left.bin` | `RoutineLeftLid=1`, `RoutineRightLid=0` | close **only the left eye**, keep the right eye open |
-| `wink_right.bin` | `RoutineLeftLid=0`, `RoutineRightLid=1` | close **only the right eye**, keep the left eye open |
+| `wink_left.bin` | `RoutineLeftLid=1`, `RoutineRightLid=0` | close **only your left eye**, keep your right eye open |
+| `wink_right.bin` | `RoutineLeftLid=0`, `RoutineRightLid=1` | close **only your right eye**, keep your left eye open |
 
 `0` means closed and `1` means open. The labels look "swapped" because
 `FrameCollector` stores the right camera in `LeftJpeg` and the trainer pairs
@@ -21,8 +21,11 @@ the blink prompt for a wink step, only close the requested eye.** The overlay
 does not tell you which eye it wants, so follow the step order:
 
 1. Normal blink prompt: close both eyes.
-2. First extra blink prompt: close only the left eye (`wink_left`).
-3. Second extra blink prompt: close only the right eye (`wink_right`).
+2. First extra blink prompt: close only your left eye (`wink_left`).
+3. Second extra blink prompt: close only your right eye (`wink_right`).
+
+Use your own left/right, not the side of the preview: the eye cameras can be
+horizontally flipped, so the preview is not a reliable left/right reference.
 
 The two bins are merged into `user_cal.bin` together with `gaze.bin` and
 `blink.bin`, using whatever bins are already present in `ModelData`. `BlinkOnly`
