@@ -1,4 +1,5 @@
 using Baballonia.Contracts;
+using Baballonia.Services;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using System;
@@ -187,6 +188,9 @@ public sealed class PfldSimEyelidEnhancer : IEyelidEnhancer
         {
             _converter.Convert(prepared, _inferenceRunner.GetInputTensor());
             var outputs = _inferenceRunner.Run();
+            if (outputs == null)
+                return null;
+
             var normalized = ComputeNormalizedOpenness(outputs);
             if (double.IsNaN(normalized))
                 return null;
